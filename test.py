@@ -1,33 +1,154 @@
 import matplotlib.pyplot as plt
-import numpy as np
 
-from matplotlib.widgets import TextBox
-
-fig, ax = plt.subplots()
-fig.subplots_adjust(bottom=0.2)
-
-t = np.arange(-2.0, 2.0, 0.001)
-l, = ax.plot(t, np.zeros_like(t), lw=2)
+# Реализация алгоритма Брезенхема для растеризации отрезка
 
 
-def submit(expression):
-    """
-    Update the plotted function to the new math *expression*.
+def bresenham_line(x1, y1, x2, y2, grid):
+    dx = abs(x2 - x1)
+    dy = abs(y2 - y1)
+    sx = 1 if x1 < x2 else -1
+    sy = 1 if y1 < y2 else -1
+    error = dx - dy
 
-    *expression* is a string using "t" as its independent variable, e.g.
-    "t ** 3".
-    """
-    ydata = eval(expression, {'np': np}, {'t': t})
-    print(ydata)
-    l.set_ydata(ydata)
-    ax.relim()
-    ax.autoscale_view()
-    plt.draw()
+    x = x1
+    y = y1
+
+    while True:
+        grid[y][x] = 1
+
+        if x == x2 and y == y2:
+            break
+
+        e2 = 2 * error
+        if e2 > -dy:
+            error -= dy
+            x += sx
+        if e2 < dx:
+            error += dx
+            y += sy
+
+# Реализация алгоритма Брезенхема для растеризации окружности
 
 
-axbox = fig.add_axes([0.1, 0.05, 0.8, 0.075])
-text_box = TextBox(axbox, "Evaluate", textalignment="center")
-text_box.on_submit(submit)
-text_box.set_val("2 * t ** 2")  # Trigger `submit` with the initial string.
+def bresenham_circle(radius, cx, cy, grid):
+    x = radius
+    y = 0
+    error = 0
+
+    while x >= y:
+        grid[cy + y][cx + x] = 1
+        grid[cy + x][cx + y] = 1
+        grid[cy + x][cx - y] = 1
+        grid[cy + y][cx - x] = 1
+        grid[cy - y][cx - x] = 1
+        grid[cy - x][cx - y] = 1
+        grid[cy - x][cx + y] = 1
+        grid[cy - y][cx + x] = 1
+
+        y += 1
+        if error <= 0:
+            error += 2 * y + 1
+        if error > 0:
+            x -= 1
+            error -= 2 * x + 1
+
+
+# Создаем сетку для визуализации
+grid_size = 20
+grid = [[0 for _ in range(grid_size)] for _ in range(grid_size)]
+
+# Входные данные: координаты концов отрезка и центр окружности
+x1, y1 = 2, 2
+x2, y2 = 15, 17
+circle_radius = 6
+circle_center_x, circle_center_y = 10, 10
+
+# Растеризуем отрезок и окружность
+bresenham_line(x1, y1, x2, y2, grid)
+bresenham_circle(circle_radius, circle_center_x, circle_center_y, grid)
+
+# Отображаем результат
+plt.imshow(grid, cmap='gray', origin='lower')
+
+
+def bresenham_line1(x1, y1, x2, y2):
+    points = []
+    dx = abs(x2 - x1)
+    dy = abs(y2 - y1)
+    sx = 1 if x1 < x2 else -1
+    sy = 1 if y1 < y2 else -1
+    error = dx - dy
+
+    x = x1
+    y = y1
+
+    while True:
+        points.append((x, y))
+
+        if x == x2 and y == y2:
+            break
+
+        e2 = 2 * error
+        if e2 > -dy:
+            error -= dy
+            x += sx
+        if e2 < dx:
+            error += dx
+            y += sy
+
+    return points
+
+# Реализация алгоритма Брезенхема для растеризации окружности
+
+
+def bresenham_circle1(radius, x_center, y_center):
+    points = []
+    x = 0
+    y = radius
+    delta = 1 - 2 * radius
+
+    while y >= 0:
+        points.extend([
+            (x_center + x, y_center + y),
+            (x_center - x, y_center + y),
+            (x_center + x, y_center - y),
+            (x_center - x, y_center - y)
+        ])
+
+        error = 2 * (delta + y) - 1
+        if delta < 0 and error <= 0:
+            x += 1
+            delta += 2 * x + 1
+            continue
+
+        error = 2 * (delta - x) - 1
+        if delta > 0 and error > 0:
+            y -= 1
+            delta += 1 - 2 * y
+            continue
+
+        x += 1
+        delta += 2 * (x - y)
+        y -= 1
+
+    return points
+
+# Вызов функций и получение точек
+segment_points = bresenham_line1(0, 0, 3, 7)
+circle_points = bresenham_circle1(2, 3, 3)
+
+# Отображение точек с помощью matplotlib
+x_segment, y_segment = zip(*segment_points)
+x_circle, y_circle = zip(*circle_points)
+
+plt.figure(figsize=(6, 6))
+plt.plot(x_segment, y_segment, 'b.')
+plt.plot([0, 3], [0, 7], 'black', linewidth='3')
+plt.plot(x_circle, y_circle, 'r.')
+circle = plt.Circle((2, 3), 3, color='black', fill=False)
+plt.gca().add_patch(circle)
+plt.gca().set_aspect('equal', adjustable='box')
+plt.grid(True)
+
 
 plt.show()

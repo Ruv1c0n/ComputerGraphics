@@ -10,10 +10,7 @@ def shift_figure(coords, shift_x, shift_y):
 
 def xy_reflection(coords):
     for point in coords:
-        print(point)
-        # point = point[1:0:-1]
         point[0], point[1] = point[1], point[0]
-        print(point)
     return coords
 
 

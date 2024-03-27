@@ -1,4 +1,20 @@
+
 import numpy as np
+
+'''
+    coords - параметры фигуры
+    shift_x - значение сдвига по оси Ox
+    shift_y - значение сдвига по оси Oy
+    (p_x, p_y) - точка относительно которой совершается поворот
+    angle - угол поворота против часовой стрелки
+    scale_x - коэффициент растяжения по оси Ox
+    scale_y - коэффициент растяжения по оси Oy
+
+    shift_figure(coords, shift_x, shift_y) - сдвиг относительно текущего положения
+    xy_reflection(coords) - отражение относительно осей
+    rotate_figure(coords, p_x, p_y, angle) - поворот относительно точки
+    scale_figure(coords, scale_x, scale_y) - растяжение по осям
+'''
 
 
 def shift_figure(coords, shift_x, shift_y):
@@ -15,12 +31,14 @@ def xy_reflection(coords):
 
 
 def rotate_figure(coords, p_x, p_y, angle):
-    angle = np.radians(angle)
-    cos_angle = np.cos(angle)
-    sin_angle = np.sin(angle)
-    transformation_matrix = np.array([[cos_angle, -sin_angle, 0],
-                                      [sin_angle, cos_angle, 0],
-                                      [0, 0, 1]])
+    angle_rad = np.radians(angle)
+    cos_angle = np.cos(angle_rad)
+    sin_angle = np.sin(angle_rad)
+    transformation_matrix = np.array([
+        [cos_angle, -sin_angle, 0],
+        [sin_angle, cos_angle, 0],
+        [0, 0, 1]
+    ])
 
     translated_points = coords - np.array([p_x, p_y, 0])
     rotated_points = np.dot(translated_points, transformation_matrix.T)

@@ -104,19 +104,19 @@ def bresenham_circle(radius, x_center, y_center):
 
 
 # Вызов функций и получение точек
-segment_points = bresenham_line(0, 0, 3, 7)
-circle_points = bresenham_circle(2, 3, 3)
+segment_points = bresenham_line(-1, -1, 4, 2)
+# circle_points = bresenham_circle(2, 3, 3)
 
 # Отображение точек с помощью matplotlib
 x_segment, y_segment = zip(*segment_points)
-x_circle, y_circle = zip(*circle_points)
+# x_circle, y_circle = zip(*circle_points)
 
-plt.figure(figsize=(6, 6))
+plt.figure(figsize=(10, 10))
 plt.plot(x_segment, y_segment, 'b.')
-plt.plot([0, 3], [0, 7], 'black', linewidth='3')
-plt.plot(x_circle, y_circle, 'r.')
-circle = plt.Circle((2, 3), 3, color='black', fill=False)
-plt.gca().add_patch(circle)
-plt.gca().set_aspect('equal', adjustable='box')
+plt.plot([-1, 4], [-1, 2], 'black', linewidth='3')
+# plt.plot(x_circle, y_circle, 'r.')
+# circle = plt.Circle((2, 3), 3, color='black', fill=False)
+# plt.gca().add_patch(circle)
+# plt.gca().set_aspect('equal', adjustable='box')
 plt.grid(True)
 plt.show()

@@ -25,9 +25,10 @@ def shift_figure(coords, shift_x, shift_y):
 
 
 def xy_reflection(coords):
-    for point in coords:
+    c = np.copy(coords)
+    for point in c:
         point[0], point[1] = point[1], point[0]
-    return coords
+    return c
 
 
 def rotate_figure(coords, p_x, p_y, angle):
@@ -48,7 +49,8 @@ def rotate_figure(coords, p_x, p_y, angle):
 
 
 def scale_figure(coords, scale_x, scale_y):
-    for point in coords:
+    c = np.copy(coords)
+    for point in c:
         point[0] *= scale_x if scale_x != 0 else 1
         point[1] *= scale_y if scale_y != 0 else 1
-    return coords
+    return c

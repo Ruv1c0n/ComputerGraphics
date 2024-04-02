@@ -49,7 +49,7 @@ class Transformations:
                 __resetInputRotate(self) - сбрасывает значения полей для ввода поворота
 
         run(self) - запуск работы класса
-    '''.format()
+    '''
 
     def __init__(self):
         self.fig = plt.figure(figsize=(11, 11))

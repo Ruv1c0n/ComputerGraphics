@@ -24,6 +24,43 @@ class Rasterization:
         self.__initAxes() - инициализация сетки
         __initUI(self) - инициализация элементов управления и фигуры
 
+            __initChoosingShape(self) - инициализация выбора фигуры
+                __choosingShape(self, label_name) - меняет фигуру
+                    __setVisibleUI(self, type) - показывает UI для выбранной фигуры
+
+            __initInputLine(self) - инициализация ввода координат линии
+                __setStartX(self, text) - ввод начальной координаты X для линии
+                __setStartY(self, text) - ввод начальной координаты Y для линии
+                __setEndX(self, text) - ввод конечной координаты X для линии
+                __setEndY(self, text) - ввод конечной координаты Y для линии
+
+            __initInputCircle(self) - инициализация ввода координат и радиуса окружности
+                __setX(self, text) - ввод координаты X для центра окружности
+                __setY(self, text) - ввод координаты Y для центра окружности
+                __setRadius(self, text) - ввод радиуса окружности
+
+            __initDrawButton(self) - инициализация кнопки отрисовки
+                __drawFigure(self, event, normalized) - запуск отрисовки фигуры
+                    __drawLine(self) - рисует ненормализованную линию
+                    __drawCircle(self) - рисует ненормализованную окружность
+
+            __initNormalization(self) - инициализация кнопки нормализации
+                __normalize(self, event) - запуск нормализации фигуры
+                    __normalizeLine(self) - нормализует линию
+                    __normalizeCircle(self) - нормализует окружность
+
+            __initRasterization(self) - инициализация кнопки растрезации
+                __rasterize(self, event) - запуск растеризации фигуры
+                    __rasterizeLine(self) - растеризует линию
+                        __line_bresenham(self) - алгоритм Бразенхама для линии
+                    __rasterizeCircle(self) - растеризует окружность
+                        __circle_bresenham(self) - алгоритм Бразенхама для окружности
+
+            __initReturn(self) - инициализация кнопки, которая возвращает фигуру и растеризованную фигуру в исходную позицию
+                __return(self, event) - запуск возврата фигуры к исходному положению
+                    __returnLine(self) - возвращает линию к исходной позиции
+                    __returnCircle(self) - возвращает окружность к исходной позиции
+                    
         run(self) - запуск работы класса
     '''
 

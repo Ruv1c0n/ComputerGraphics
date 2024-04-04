@@ -55,13 +55,15 @@ class Rasterization:
                     __rasterizeLine(self) - растеризует линию
                         __line_bresenham(self) - алгоритм Бразенхама для линии
                     __rasterizeCircle(self) - растеризует окружность
+                        __rasterizeCirclePart(self) - Растеризует часть окружности
                         __circle_bresenham(self) - алгоритм Бразенхама для окружности
+                        
 
             __initReturn(self) - инициализация кнопки, которая возвращает фигуру и растеризованную фигуру в исходную позицию
                 __return(self, event) - запуск возврата фигуры к исходному положению
                     __returnLine(self) - возвращает линию к исходной позиции
                     __returnCircle(self) - возвращает окружность к исходной позиции
-                    
+
         run(self) - запуск работы класса
     '''
 
@@ -311,22 +313,22 @@ class Rasterization:
 
     def __normalizeLine(self):
         shift = np.array([-self.coords[0][0], -self.coords[0][1]])
-        shift_figure(self.coords, *shift)
-        sleep(3)
+        self.coords = shift_figure(self.coords, *shift)
         self.__drawFigure('', True)
+        sleep(1)
 
         if self.coords[1][1] < 0:
             self.coords = scale_figure(self.coords, 1, -1)
-        sleep(3)
-        self.__drawFigure('', True)
+            self.__drawFigure('', True)
+            sleep(1)
         if self.coords[1][0] < 0:
             self.coords = scale_figure(self.coords, -1, 1)
-        sleep(3)
-        self.__drawFigure('', True)
+            self.__drawFigure('', True)
+            sleep(1)
         if np.abs(self.coords[1][0]) < np.abs(self.coords[1][1]):
             self.coords = xy_reflection(self.coords)
-        sleep(3)
-        self.__drawFigure('', True)
+            self.__drawFigure('', True)
+            sleep(1)
 
     def __normalizeCircle(self):
         self.coords[0] += -self.coords[0]
@@ -334,55 +336,47 @@ class Rasterization:
 
     def __rasterize(self, event):
         if self.current_figure_type == 'Line':
+            self.raster_line = np.array(self.__line_bresenham())
             self.__rasterizeLine()
         elif self.current_figure_type == 'Circle':
+            self.raster_circle = np.array(self.__circle_bresenham())
             self.__rasterizeCircle()
 
-        self.fig.canvas.draw()
-        self.fig.canvas.flush_events()
-
     def __rasterizeLine(self):
-        self.raster_line = np.array(self.__line_bresenham())
         x, y = np.hsplit(self.raster_line, 2)
         self.ax.plot(
-            x, 
-            y, 
-            marker='s', 
-            markersize=29, 
+            x,
+            y,
+            marker='s',
+            markersize=29,
             linewidth=0,
             color='grey'
         )
-
-    def __rasterizeCircle(self):
-        self.raster_circle = np.array(self.__circle_bresenham())
-        self.__rasterizeCirclePart()
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
+
+    def __rasterizeCircle(self):
+        self.__rasterizeCirclePart()
         sleep(1)
 
         self.raster_circle = np.concatenate([
-            self.raster_circle, 
+            self.raster_circle,
             xy_reflection(self.raster_circle)
         ])
         self.__rasterizeCirclePart()
-        self.fig.canvas.draw()
-        self.fig.canvas.flush_events()
         sleep(1)
 
         self.raster_circle = np.concatenate([
-            self.raster_circle, 
+            self.raster_circle,
             scale_figure(self.raster_circle, 1, -1)
         ])
         self.__rasterizeCirclePart()
-        self.fig.canvas.draw()
-        self.fig.canvas.flush_events()
         sleep(1)
 
         self.raster_circle = np.concatenate([
-            self.raster_circle, 
+            self.raster_circle,
             scale_figure(self.raster_circle, -1, 1)
         ])
-
         self.__rasterizeCirclePart()
 
     def __rasterizeCirclePart(self):
@@ -395,6 +389,8 @@ class Rasterization:
             linewidth=0,
             color='grey'
         )
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
 
     def __return(self, event):
         if self.current_figure_type == 'Line':
@@ -402,94 +398,44 @@ class Rasterization:
         elif self.current_figure_type == 'Circle':
             self.__returnCircle()
 
-        self.fig.canvas.draw()
-        self.fig.canvas.flush_events()
-
     def __returnLine(self):
-
         if np.abs(self.const_line_coords[0][0] - self.const_line_coords[1][0]) < np.abs(self.const_line_coords[0][1] - self.const_line_coords[1][1]):
             self.raster_line = xy_reflection(self.raster_line)
             self.coords = xy_reflection(self.coords)
         self.__drawFigure('', True)
-        x, y = np.hsplit(self.raster_line, 2)
-        self.ax.plot(
-            x,
-            y,
-            marker='s',
-            markersize=29,
-            linewidth=0,
-            color='grey'
-        )
-        self.fig.canvas.draw()
-        self.fig.canvas.flush_events()
+        self.__rasterizeLine()
         sleep(1)
 
         if self.const_line_coords[1][0] - self.const_line_coords[0][0] <= 0:
             self.raster_line = scale_figure(self.raster_line, -1, 1)
             self.coords = scale_figure(self.coords, -1, 1)
         self.__drawFigure('', True)
-        x, y = np.hsplit(self.raster_line, 2)
-        self.ax.plot(
-            x,
-            y,
-            marker='s',
-            markersize=29,
-            linewidth=0,
-            color='grey'
-        )
-        self.fig.canvas.draw()
-        self.fig.canvas.flush_events()
+        self.__rasterizeLine()
         sleep(1)
 
         if self.const_line_coords[1][1] - self.const_line_coords[0][1] <= 0:
             self.raster_line = scale_figure(self.raster_line, 1, -1)
             self.coords = scale_figure(self.coords, 1, -1)
         self.__drawFigure('', True)
-        x, y = np.hsplit(self.raster_line, 2)
-        self.ax.plot(
-            x,
-            y,
-            marker='s',
-            markersize=29,
-            linewidth=0,
-            color='grey'
-        )
-        self.fig.canvas.draw()
-        self.fig.canvas.flush_events()
+        self.__rasterizeLine()
         sleep(1)
 
-        shift = np.array([self.const_line_coords[0][0], self.const_line_coords[0][1]])
+        shift = np.array([self.const_line_coords[0][0],
+                         self.const_line_coords[0][1]])
         self.raster_line = shift_figure(self.raster_line, *shift)
         self.coords = shift_figure(self.coords, *shift)
 
-
         self.__drawFigure('', True)
-        x, y = np.hsplit(self.raster_line, 2)
-        self.ax.plot(
-            x, 
-            y, 
-            marker='s', 
-            markersize=29,
-            linewidth=0, 
-            color='grey'
-        )
+        self.__rasterizeLine()
 
     def __returnCircle(self):
         self.coords = np.copy(self.const_circle_coords)
-        self.__drawFigure('')
+        self.__drawFigure('', True)
 
         shift = np.array([self.coords[0], self.coords[1]])
         self.raster_circle = shift_figure(self.raster_circle, *shift)
 
-        x, y = np.hsplit(self.raster_circle, 2)
-        self.ax.plot(
-            x, 
-            y, 
-            marker='s', 
-            markersize=29,
-            linewidth=0, 
-            color='grey'
-        )
+        self.__rasterizeCirclePart()
 
     def __line_bresenham(self):
         x1, y1, x2, y2 = self.coords[0][0], self.coords[0][1], self.coords[1][0], self.coords[1][1]
@@ -525,14 +471,16 @@ class Rasterization:
                 x += 1
                 y -= 1
             elif delta < 0:
-                sigma = abs((x + 1) * (x + 1) + y * y - r * r) - abs((x + 1) * (x + 1) + (y - 1) * (y - 1) - r * r)
+                sigma = abs((x + 1) * (x + 1) + y * y - r * r) - \
+                    abs((x + 1) * (x + 1) + (y - 1) * (y - 1) - r * r)
                 if sigma >= 0:
                     x += 1
                     y -= 1
                 else:
                     x += 1
             else:
-                sigma = abs((x + 1) * (x + 1) + (y - 1) * (y - 1) - r * r) - abs(x * x + (y - 1) * (y - 1) - r * r)
+                sigma = abs((x + 1) * (x + 1) + (y - 1) * (y - 1) -
+                            r * r) - abs(x * x + (y - 1) * (y - 1) - r * r)
                 if sigma >= 0:
                     x += 1
                     y -= 1

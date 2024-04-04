@@ -14,6 +14,7 @@ from matplotlib.widgets import (
     RadioButtons,
     TextBox
 )
+from time import sleep
 
 # Методы преобразований
 from changes import *
@@ -311,13 +312,21 @@ class Rasterization:
     def __normalizeLine(self):
         shift = np.array([-self.coords[0][0], -self.coords[0][1]])
         shift_figure(self.coords, *shift)
+        sleep(3)
+        self.__drawFigure('', True)
 
         if self.coords[1][1] < 0:
             self.coords = scale_figure(self.coords, 1, -1)
+        sleep(3)
+        self.__drawFigure('', True)
         if self.coords[1][0] < 0:
             self.coords = scale_figure(self.coords, -1, 1)
+        sleep(3)
+        self.__drawFigure('', True)
         if np.abs(self.coords[1][0]) < np.abs(self.coords[1][1]):
             self.coords = xy_reflection(self.coords)
+        sleep(3)
+        self.__drawFigure('', True)
 
     def __normalizeCircle(self):
         self.coords[0] += -self.coords[0]
@@ -340,32 +349,50 @@ class Rasterization:
             y, 
             marker='s', 
             markersize=29, 
-            linewidth=0, 
+            linewidth=0,
             color='grey'
         )
 
     def __rasterizeCircle(self):
         self.raster_circle = np.array(self.__circle_bresenham())
+        self.__rasterizeCirclePart()
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
+        sleep(1)
+
         self.raster_circle = np.concatenate([
             self.raster_circle, 
             xy_reflection(self.raster_circle)
         ])
+        self.__rasterizeCirclePart()
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
+        sleep(1)
+
         self.raster_circle = np.concatenate([
             self.raster_circle, 
             scale_figure(self.raster_circle, 1, -1)
         ])
+        self.__rasterizeCirclePart()
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
+        sleep(1)
+
         self.raster_circle = np.concatenate([
             self.raster_circle, 
             scale_figure(self.raster_circle, -1, 1)
         ])
 
+        self.__rasterizeCirclePart()
+
+    def __rasterizeCirclePart(self):
         x, y = np.hsplit(self.raster_circle, 2)
         self.ax.plot(
-            x, 
-            y, 
-            marker='s', 
-            markersize=29, 
-            linewidth=0, 
+            x,
+            y,
+            marker='s',
+            markersize=29,
+            linewidth=0,
             color='grey'
         )
 
@@ -379,19 +406,64 @@ class Rasterization:
         self.fig.canvas.flush_events()
 
     def __returnLine(self):
-        self.coords = np.copy(self.const_line_coords)
-        self.__drawFigure('')
 
-        if np.abs(self.coords[1][0]) < np.abs(self.coords[1][1]):
+        if np.abs(self.const_line_coords[0][0] - self.const_line_coords[1][0]) < np.abs(self.const_line_coords[0][1] - self.const_line_coords[1][1]):
             self.raster_line = xy_reflection(self.raster_line)
-        if self.coords[1][0] < 0:
+            self.coords = xy_reflection(self.coords)
+        self.__drawFigure('', True)
+        x, y = np.hsplit(self.raster_line, 2)
+        self.ax.plot(
+            x,
+            y,
+            marker='s',
+            markersize=29,
+            linewidth=0,
+            color='grey'
+        )
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
+        sleep(1)
+
+        if self.const_line_coords[1][0] - self.const_line_coords[0][0] <= 0:
             self.raster_line = scale_figure(self.raster_line, -1, 1)
-        if self.coords[1][1] < 0:
+            self.coords = scale_figure(self.coords, -1, 1)
+        self.__drawFigure('', True)
+        x, y = np.hsplit(self.raster_line, 2)
+        self.ax.plot(
+            x,
+            y,
+            marker='s',
+            markersize=29,
+            linewidth=0,
+            color='grey'
+        )
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
+        sleep(1)
+
+        if self.const_line_coords[1][1] - self.const_line_coords[0][1] <= 0:
             self.raster_line = scale_figure(self.raster_line, 1, -1)
+            self.coords = scale_figure(self.coords, 1, -1)
+        self.__drawFigure('', True)
+        x, y = np.hsplit(self.raster_line, 2)
+        self.ax.plot(
+            x,
+            y,
+            marker='s',
+            markersize=29,
+            linewidth=0,
+            color='grey'
+        )
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
+        sleep(1)
 
-        shift = np.array([self.coords[0][0], self.coords[0][1]])
+        shift = np.array([self.const_line_coords[0][0], self.const_line_coords[0][1]])
         self.raster_line = shift_figure(self.raster_line, *shift)
+        self.coords = shift_figure(self.coords, *shift)
 
+
+        self.__drawFigure('', True)
         x, y = np.hsplit(self.raster_line, 2)
         self.ax.plot(
             x, 

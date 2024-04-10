@@ -251,7 +251,7 @@ class Transformations:
         self.ax.add_patch(polygon)
 
         self.fig.canvas.draw()
-        # self.fig.canvas.flush_events()
+        self.fig.canvas.flush_events()
 
     def __reflectTypeChanger(self, label_name):
         if label_name == 'X':

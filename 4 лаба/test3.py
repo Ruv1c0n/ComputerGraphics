@@ -1,94 +1,121 @@
-import matplotlib.pyplot as plt
-from matplotlib.patches import Polygon
-from matplotlib.collections import PatchCollection
-import numpy as np
+from matplotlib import pyplot as plt
+
+"""
+Описание функции: определение границы, за которую точка выходит
+"""
 
 
-def dot(p0, p1):
-    return p0[0] * p1[0] + p0[1] * p1[1]
-
-# Function to calculate the max from a list of floats
-
-
-def max(t):
-    return np.max(t)
-
-# Function to calculate the min from a list of floats
-
-
-def min(t):
-    return np.min(t)
+def edgeCode(x, y, yEdge, xEdge):
+    code = 0
+    if x < xEdge[0]:
+        code = code | 1
+    if x > xEdge[1]:
+        code = code | 2
+    if y < yEdge[0]:
+        code = code | 4
+    if y > yEdge[1]:
+        code = code | 8
+    return code
 
 
-def cyrus_beck(vertices, line):
-    n = len(vertices)
-    P1_P0 = (line[1][0] - line[0][0], line[1][1] - line[0][1])
+"""
+ Описание функции: cohenSotherland 
+ параметр: pointX: коллекция точки X
+                       pointY: набор точки Y
+                       yEdge: верхняя и нижняя граница
+                       xEdge: левая и правая граница
+                       pic: изображение
+"""
 
-    normal = [(vertices[i][1] - vertices[(i + 1) % n][1],
-               vertices[(i + 1) % n][0] - vertices[i][0]) for i in range(n)]
 
-    P0_PEi = [(vertices[i][0] - line[0][0],
-               vertices[i][1] - line[0][1]) for i in range(n)]
+def cohenSurtherland(xEdge, yEdge, pointX, pointY, pic):
+    # Граница
+    mid = 0
+    leftEdge = 1
+    rightEdege = 2
+    bottomEdge = 4
+    topEdge = 8
 
-    numerator = [dot(normal[i], P0_PEi[i]) for i in range(n)]
+    pointX.append(pointX[0])
+    pointY.append(pointY[0])
 
-    denominator = [dot(normal[i], P1_P0) for i in range(n)]
+    for i in range(len(pointX)-1):
 
-    t = [numerator[i] / denominator[i]
-         if denominator[i] != 0 else 0 for i in range(n)]
+        time = 0  # Используется для определения, когда сегмент линии полностью выходит за пределы
 
-    points = [(vertices[i][0] + P1_P0[0] * t[i], vertices[i][1] + P1_P0[1] * t[i])
-              for i in range(n)]
-    for point in points:
-        plt.plot(point[0], point[1], 'ro')
+        x0 = pointX[i]
+        y0 = pointY[i]
+        x1 = pointX[i+1]
+        y1 = pointY[i+1]
 
-    tE = [t[i] for i in range(n) if denominator[i] > 0]
-    tL = [t[i] for i in range(n) if denominator[i] < 0]
-    tE.append(0)
-    tL.append(1)
-    temp = [max(tE), min(tL)]
-    if temp[0] > temp[1]:
-        return None
-    newPair = [(line[0][0] + P1_P0[0] * temp[0], line[0][1] + P1_P0[1] * temp[0]),
-               (line[0][0] + P1_P0[0] * temp[1], line[0][1] + P1_P0[1] * temp[1])]
+        code0 = edgeCode(x0, y0, xEdge, yEdge)
+        code1 = edgeCode(x1, y1, xEdge, yEdge)
+        while True:
+            if not (code0 | code1):  # Сегмент линии внутри
+                pic.plot([x0, x1], [y0, y1], c='r')
+                break
+            elif (code0 & code1 or time > 3):  # Сегменты линии находятся снаружи
+                break
+            else:
+                if (x1 != x0):
+                    k = (y1 - y0) / (x1 - x0)
+                    dk = 1/k  # k взаимно
+                else:
+                    dk = 0
+                # Определить, какая конечная точка находится за пределами
+                if code0:
+                    codeout = code0
+                    temp = 0
+                else:
+                    codeout = code1
+                    temp = 1
+                # Определить направление выхода за пределы и обновить точку
+                if codeout & leftEdge:
+                    y = pointY[i+temp]+k*(xEdge[0]-pointX[i+temp])
+                    x = xEdge[0]
+                elif codeout & rightEdege:
+                    y = pointY[i+temp]+k*(xEdge[1]-pointX[i+temp])
+                    x = xEdge[1]
+                if codeout & topEdge:
+                    x = pointX[i+temp]+dk*(yEdge[1]-pointY[i+temp])
+                    y = yEdge[1]
+                elif codeout & bottomEdge:
+                    x = pointX[i+temp]+dk*(yEdge[0]-pointY[i+temp])
+                    y = yEdge[0]
+                if temp:
+                    x1 = x
+                    y1 = y
+                    code1 = edgeCode(x1, y1, xEdge, yEdge)
+                else:
+                    x0 = x
+                    y0 = y
+                    code0 = edgeCode(x0, y0, xEdge, yEdge)
+                time += 1
 
-    return newPair
 
-    # Входные данные: координаты вершин многоугольника (прямоугольника) и координаты концов отрезка
-polygon = [[0, 0], [3, -2], [6, 0], [6, 4], [3, 6], [0, 3]]
-line_p1 = [-2, 0]
-line_p2 = [8, 2]
-points = []
+def tes(ax2):
+    a = 8
+    b = 0
+    print(a | b)
 
-# Создание изображения многоугольника и отрезка
 
-fig = plt.figure(figsize=(10, 10))
+if __name__ == '__main__':
+    # Левая и правая нижняя и верхняя граница
+    xEdge = [10, 30]
+    yEdge = [10, 30]
+    #
+    pointX = [0, 40]
+    pointY = [10, 30]
 
-# Выполнение алгоритма Цируса-Бека
-intersect_points = cyrus_beck(polygon, [line_p1, line_p2])
-fig.canvas.manager.set_window_title('Растеризация')
-ax = fig.add_subplot()
-polygon_patch = Polygon(polygon, edgecolor='black', facecolor='none')
-line = plt.Line2D([line_p1[0], line_p2[0]], [
-                  line_p1[1], line_p2[1]], color='blue')
-ax.add_line(line)
-clip_line = plt.Line2D([intersect_points[0][0], intersect_points[1][0]], [
-    intersect_points[0][1], intersect_points[1][1]], color='red', lw=3)
-ax.add_line(clip_line)
+    pic0 = plt.subplot(1, 2, 1)
+    pic0.axis([0, 50, 0, 50])
+    pic0.plot([10, 30, 30, 10, 10], [10, 10, 30, 30, 10])
+    pic0.plot(pointX, pointY, c='r')
 
-# Отмечаем все потенциальные точки входа и выхода
-for point in intersect_points:
-    plt.plot(point[0], point[1], 'ro')
+    pic1 = plt.subplot(1, 2, 2)
+    pic1.axis([0, 50, 0, 50])
+    pic1.plot([10, 30, 30, 10, 10], [10, 10, 30, 30, 10])
 
-# Выделение части отрезка внутри многоугольника другим цветом
-# Тут нужно будет использовать результаты алгоритма Цируса-Бека
+    cohenSurtherland(xEdge, yEdge, pointX, pointY, pic1)
 
-# Добавляем на график многоугольник и отрезок
-ax.add_patch(polygon_patch)
-ax.add_line(line)
-
-# Настройка пределов осей для лучшего отображения
-ax.set_xlim(-10, 10)
-ax.set_ylim(-10, 10)
-
-plt.show()
+    plt.show()

@@ -48,40 +48,45 @@ class Clipping:
         self.b_clip.on_clicked(self.__clip)
 
     def __initFigures(self):
+        self.rectangle = False
         self.polygon_coords = np.genfromtxt(
-            self.polygon_file, 
+            self.polygon_file,
             delimiter=' '
         )
         self.cyrus_beck_line = np.genfromtxt(
-            self.cyrus_beck_line_file, 
+            self.cyrus_beck_line_file,
             delimiter=' '
         )
-        self.cohen_sutherland_line = np.genfromtxt(
-            self.cohen_sutherland_line_file, 
-            delimiter=' '
-        )
-        self.middle_point_line = np.genfromtxt(
-            self.middle_point_line_file, 
-            delimiter=' '
-        )
+        if self.polygon_coords.size / 2 > 2:
+            self.rectangle = False
+        elif self.polygon_coords.size / 2 < 2:
+            raise ValueError("Invalid input data size")
+        else:
+            self.rectangle = True
+            self.cohen_sutherland_line = np.genfromtxt(
+                self.cohen_sutherland_line_file,
+                delimiter=' '
+            )
+            self.middle_point_line = np.genfromtxt(
+                self.middle_point_line_file,
+                delimiter=' '
+            )
 
     def run(self):
         self.__drawFigures()
         plt.show()
 
     def __drawFigures(self):
-        if self.polygon_coords.size / 2 > 2:
-            self.__drawPolygon(rectangle=False)
-            self.__drawLine(self.cyrus_beck_line)
-            print('Цирус-Бек')
-        elif self.polygon_coords.size / 2 < 2:
-            raise ValueError("Invalid input data size")
-        else:
-            self.__drawPolygon(rectangle=True)
+        if self.rectangle:
+            self.__drawPolygon(self.rectangle)
             self.__drawLine(self.cyrus_beck_line)
             self.__drawLine(self.cohen_sutherland_line)
             self.__drawLine(self.middle_point_line)
             print('3 алгоритма')
+        else:
+            self.__drawPolygon(self.rectangle)
+            self.__drawLine(self.cyrus_beck_line)
+            print('Цирус-Бек')
 
     def __drawPolygon(self, rectangle):
         if rectangle:
@@ -123,18 +128,17 @@ class Clipping:
 
     def __clip(self, event):
         self.ax.set_title('After clipping')
+        self.__clipCyrusBeck()
 
-        self.__cyrusBeck()
-        self.__drawLine(self.new_cyrus_beck_line, 'red')
-        x = np.array([
-            self.new_cyrus_beck_line[0][0], 
-            self.new_cyrus_beck_line[1][0]
-        ])
-        y = np.array([
-            self.new_cyrus_beck_line[0][1],
-              self.new_cyrus_beck_line[1][1]
-        ])
-        self.ax.plot(x, y, 'ro')
+
+    def __clipCyrusBeck(self):
+        self.clipped_cyrus_beck_line = self.__cyrusBeck()
+        if self.clipped_cyrus_beck_line is not None:
+            self.__drawLine(self.clipped_cyrus_beck_line, 'green')
+        for point in self.intersections_in:
+            self.ax.plot(point[0], point[1], 'ro')
+        for point in self.intersections_out:
+            self.ax.plot(point[0], point[1], 'bo')
 
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
@@ -146,25 +150,48 @@ class Clipping:
             self.cyrus_beck_line[1][1] - self.cyrus_beck_line[0][1]
         ])
         normal = np.array([[
-            self.polygon_coords[i][1] - self.polygon_coords[(i + 1) % num_vert][1],
-            self.polygon_coords[(i + 1) % num_vert][0] - self.polygon_coords[i][0]
+            self.polygon_coords[i][1] -
+            self.polygon_coords[(i + 1) % num_vert][1],
+            self.polygon_coords[(i + 1) % num_vert][0] -
+            self.polygon_coords[i][0]
         ] for i in range(num_vert)])
         P0_PEi = np.array([[
             self.polygon_coords[i][0] - self.cyrus_beck_line[0][0],
             self.polygon_coords[i][1] - self.cyrus_beck_line[0][1]
         ] for i in range(num_vert)])
-        numerator = np.array([np.dot(normal[i], P0_PEi[i]) for i in range(num_vert)])
-        denominator = np.array([np.dot(normal[i], P1_P0) for i in range(num_vert)])
-        t = np.array([numerator[i] / denominator[i] if denominator[i] != 0 else 0 for i in range(num_vert)])
+        numerator = np.array([np.dot(normal[i], P0_PEi[i])
+                             for i in range(num_vert)])
+        denominator = np.array([np.dot(normal[i], P1_P0)
+                               for i in range(num_vert)])
+        t = np.array([numerator[i] / denominator[i]
+                     if denominator[i] != 0 else 0 for i in range(num_vert)])
+
         Te = np.array([t[i] for i in range(num_vert) if denominator[i] > 0])
         Tl = np.array([t[i] for i in range(num_vert) if denominator[i] < 0])
-        np.append(Te, 0)
-        np.append(Tl, 1)
+
+        self.intersections_in = np.array([
+            (
+                self.cyrus_beck_line[0][0] + P1_P0[0] * Te[i],
+                self.cyrus_beck_line[0][1] + P1_P0[1] * Te[i]
+            ) for i in range(Te.size)
+        ])
+        self.intersections_out = np.array([
+            (
+                self.cyrus_beck_line[0][0] + P1_P0[0] * Tl[i],
+                self.cyrus_beck_line[0][1] + P1_P0[1] * Tl[i]
+            ) for i in range(Tl.size)
+        ])
+
+        for i in range(num_vert):
+            if 0 == denominator[i]:
+                if 0 < numerator[i]:
+                    return None
+        Te = np.array([*Te, 0.0])
+        Tl = np.array([*Tl, 1.0])
         temp = np.array([max(Te), min(Tl)])
         if temp[0] > temp[1]:
-            raise Exception("Error")
             return None
-        self.new_cyrus_beck_line = np.array([
+        self.clipped_cyrus_beck_line = np.array([
             [
                 self.cyrus_beck_line[0][0] + P1_P0[0] * temp[0],
                 self.cyrus_beck_line[0][1] + P1_P0[1] * temp[0]
@@ -174,6 +201,8 @@ class Clipping:
                 self.cyrus_beck_line[0][1] + P1_P0[1] * temp[1]
             ]
         ])
+        return self.clipped_cyrus_beck_line
+
 
 app = Clipping()
 app.run()

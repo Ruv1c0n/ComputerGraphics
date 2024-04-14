@@ -22,7 +22,7 @@ from changes import *
 
 class Rasterization:
     '''
-        self.__initAxes() - инициализация сетки
+        __initAxes(self) - инициализация сетки
         __initUI(self) - инициализация элементов управления и фигуры
 
             __initChoosingShape(self) - инициализация выбора фигуры

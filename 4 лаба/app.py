@@ -250,12 +250,7 @@ class Clipping:
 
     def __drawFigures(self):
         self.__drawPolygon()
-        if self.current_clipping_line_type == 'Cyrus-Beck':
-            self.__drawAnyLine(self.const_line_coords)
-        elif self.current_clipping_line_type == 'Cohen-Sutherland':
-            self.__drawAnyLine(self.const_line_coords)
-        elif self.current_clipping_line_type == 'midle-point':
-            self.__drawAnyLine(self.const_line_coords)
+        self.__drawAnyLine(self.const_line_coords)
 
     def __clip(self, event):
         self.ax.set_title('After clipping')

@@ -50,12 +50,12 @@ class Clipping:
         run(self) - запуск работы класса
     """
     def __init__(self):
-        self.fig = plt.figure(figsize=(10, 10))
+        self.fig = plt.figure(figsize=(9, 9))
         self.fig.canvas.manager.set_window_title('Clipping line')
         self.ax = self.fig.add_subplot()
         self.__initAxes()
         self.fig.subplots_adjust(bottom=0.2)
-        self.polygon_file = 'D:/Users/Даня/Desktop/КомпГрафика/4 лаба/polygon.txt'
+        self.polygon_file = 'C:/Users/User/PycharmProjects/-----------/4 лаба/polygon.txt'
         self.__initPolygon()
         self.__initUI()
 
@@ -240,8 +240,8 @@ class Clipping:
             self.current_clipping_line_type = 'Cyrus-Beck'
         elif label_name == 'Cohen-Sutherland':
             self.current_clipping_line_type = 'Cohen-Sutherland'
-        elif label_name == 'midle-point':
-            self.current_clipping_line_type = 'midle-point'
+        elif label_name == 'Midle-point':
+            self.current_clipping_line_type = 'Midle-point'
 
         self.__drawFigures()
 
@@ -259,7 +259,7 @@ class Clipping:
                 self.__clipCyrusBeck()
             elif self.current_clipping_line_type == 'Cohen-Sutherland':
                 self.__clipCohenSutherland()
-            elif self.current_clipping_line_type == 'midle-point':
+            elif self.current_clipping_line_type == 'Midle-point':
                 self.__clipMidlePoint()
         else:
             self.__clipCyrusBeck()
@@ -267,7 +267,7 @@ class Clipping:
     def __clipCyrusBeck(self):
         self.clipped_cyrus_beck_line = self.__cyrusBeck()
         if self.clipped_cyrus_beck_line is not None:
-            self.__drawAnyLine(self.clipped_cyrus_beck_line, 'green')
+            self.__drawAnyLine(self.clipped_cyrus_beck_line, '#7fffd4')
         
         # Рисуем потеницальные точки входа и выхода
         for point in self.intersections_in:
@@ -351,7 +351,7 @@ class Clipping:
     def __clipCohenSutherland(self):
         self.clipped_cohen_sutherland_line = self.__cohenSutherland()
         if self.clipped_cohen_sutherland_line is not None:
-            self.__drawAnyLine(self.clipped_cohen_sutherland_line, 'green')
+            self.__drawAnyLine(self.clipped_cohen_sutherland_line, '#7fffd4')
 
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
@@ -432,6 +432,7 @@ class Clipping:
                     line[1][0] = x
                     line[1][1] = y
                     code1 = self.__calculateCode(line[1])
+            self.ax.plot((line[0][0], line[1][0]), (line[0][1], line[1][1]), 'ro')
 
         if accept:
             return line
@@ -444,6 +445,8 @@ class Clipping:
 
     def __midlePoint(self, prev_line):
         line = np.copy(prev_line)
+        code0 = self.__calculateCode(line[0])
+        code1 = self.__calculateCode(line[1])
         # Если длина отрезка меньше пикселя, то не рассматриваем его
         if np.sqrt(
             np.square(line[0][0] - line[1][0])
@@ -454,29 +457,35 @@ class Clipping:
 
         # Если отрезок целиком внутри области, то отрисовываем его
         if (
-            self.__calculateCode(line[0]) | self.__calculateCode(line[1])
+            code0 | code1
         ) == INSIDE:
-            self.__drawAnyLine(line, 'green')
+            self.ax.plot((line[0][0], line[1][0]), (line[0][1], line[1][1]), 'ro')
+            self.__drawAnyLine(line, '#7fffd4')
             return
         
         # Если отрезок целиком вне области, то не рассматриваем его
-        if self.__calculateCode(line[0]) == self.__calculateCode(line[1]):
+        if code0 == code1:
             return
-        
+
+        A = line[0]
+        B = line[1]
+        new_x = ((A[0] + B[0]) / 2)
+        new_y = ((A[1] + B[1]) / 2)
+
         # Делим отрезок на две части и используем алгоритм для этих частей
         self.__midlePoint(np.array([
-            line[0], 
+            A,
             [
-                (line[0][0] + line[1][0]) / 2, 
-                (line[0][1] + line[1][1]) / 2
+                new_x,
+                new_y
             ]
         ]))
         self.__midlePoint(np.array([
             [
-                (line[0][0] + line[1][0]) / 2,
-                (line[0][1] + line[1][1]) / 2
+                new_x,
+                new_y
             ], 
-            line[1]
+            B
         ]))
 
     def __setStartX(self, text):

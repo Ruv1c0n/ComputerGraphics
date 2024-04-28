@@ -55,7 +55,7 @@ class Clipping:
         self.ax = self.fig.add_subplot()
         self.__initAxes()
         self.fig.subplots_adjust(bottom=0.2)
-        self.polygon_file = 'C:/Users/User/PycharmProjects/-----------/4 лаба/polygon.txt'
+        self.polygon_file = 'D:/Users/Даня/Desktop/КомпГрафика/4 лаба/polygon.txt'
         self.__initPolygon()
         self.__initUI()
 
@@ -125,6 +125,13 @@ class Clipping:
         ])
 
     def __initDrawButton(self):
+        self.input_x_shift_axes = self.fig.add_axes([0.15, 0.12, 0.15, 0.05])
+        self.input_x_shift = TextBox(
+            self.input_x_shift_axes,
+            ' X ',
+            initial='0.0'
+        )
+        self.input_x_shift.on_submit(self.__setX)
         self.draw_axes = self.fig.add_axes([0.7, 0.05, 0.1, 0.05])
         self.b_draw = Button(
             self.draw_axes,

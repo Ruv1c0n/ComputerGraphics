@@ -35,7 +35,6 @@ class Filling:
             self.polygon_file,
             delimiter=' '
         )
-        # self.polygon_coords = np.empty(shape=[0, 2])
 
     def __initUI(self):
         self.__initInputPolygon()
@@ -71,7 +70,7 @@ class Filling:
         self.b_add_point = Button(
             self.add_point_axes,
             'Add point',
-            hovercolor='green'
+            hovercolor='white'
         )
         self.b_add_point.label.set_fontsize(14)
         self.b_add_point.on_clicked(self.__addPoint)
@@ -87,7 +86,7 @@ class Filling:
         self.b_back = Button(
             self.back_axes,
             'Back',
-            hovercolor='green'
+            hovercolor='white'
         )
         self.b_back.label.set_fontsize(14)
         self.b_back.on_clicked(self.__back)
@@ -97,7 +96,7 @@ class Filling:
         self.b_draw = Button(
             self.draw_axes,
             'Fill',
-            hovercolor='green'
+            hovercolor='white'
         )
         self.b_draw.label.set_fontsize(14)
         self.b_draw.on_clicked(self.__draw)
@@ -107,7 +106,7 @@ class Filling:
         self.b_clear = Button(
             self.clear_axes,
             'Clear',
-            hovercolor='green'
+            hovercolor='white'
         )
         self.b_clear.label.set_fontsize(14)
         self.b_clear.on_clicked(self.__clear)
@@ -181,23 +180,22 @@ class Filling:
         for i in range(len(coords)):
             if flag:
                 flag = False
-                pass
-            if coords[i - 1][1] > coords[i][1] and \
-               coords[i + 1][1] < coords[i][1] or \
-               coords[i - 1][1] < coords[i][1] and \
-               coords[i + 1][1] > coords[i][1]:
+            elif coords[i - 1][1] >= coords[i][1] and \
+               coords[i + 1][1] <= coords[i][1] or \
+               coords[i - 1][1] <= coords[i][1] and \
+               coords[i + 1][1] >= coords[i][1]:
                 coords = np.insert(coords, i, [coords[i][0], coords[i][1]], axis=0)
                 flag = True
-        if coords[len(coords) - 1][1] > coords[0][1] and \
-           coords[1][1] < coords[0][1] or \
-           coords[len(coords) - 1][1] < coords[0][1] and \
-           coords[1][1] > coords[0][1]:
+        if coords[len(coords) - 2][1] >= coords[len(coords) - 1][1] and \
+           coords[0][1] <= coords[len(coords) - 1][1] or \
+           coords[len(coords) - 2][1] <= coords[len(coords) - 1][1] and \
+           coords[0][1] >= coords[len(coords) - 1][1]:
             coords = np.insert(
                 coords, 
                 len(coords) - 1, 
-                [coords[len(coords)][0], coords[len(coords)][1]]
+                [coords[len(coords) - 1][0], coords[len(coords) - 1][1]],
+                axis=0
             )
-
         self.border = np.empty((0, 2))
 
         self.area = np.empty((100, 100))
@@ -222,137 +220,147 @@ class Filling:
         self.fig.canvas.flush_events()
 
     def __rasterize(self, coords):
-        # for i in range(len(self.polygon_coords) - 1):
-        #     self.border = np.append(
-        #         self.border,
-        #         self.bresenham_line(
-        #         self.polygon_coords[i][0], 
-        #         self.polygon_coords[i][1],
-        #         self.polygon_coords[i + 1][0],
-        #         self.polygon_coords[i + 1][1]
-        #         ),
-        #         axis=0
-        #     )
-        # self.border = np.append(
-        #     self.border,
-        #     self.bresenham_line(
-        #         self.polygon_coords[-1][0],
-        #         self.polygon_coords[-1][1],
-        #         self.polygon_coords[0][0],
-        #         self.polygon_coords[0][1]
-        #     ),
-        #     axis=0
-        # )
+        for i in range(len(coords) - 1):
+            temp = self.bresenham_line(
+                coords[i][0],
+                coords[i][1],
+                coords[i + 1][0],
+                coords[i + 1][1]
+            )
+            # for point in temp:
+            #     self.ax.scatter(point[0], point[1], s=100, marker='o', c='green')
+            self.border = np.append(
+                self.border,
+                temp,
+                axis=0
+            )
 
-        for i in range(len(coords)):
-            dx = coords[i + 1 if i < len(coords) - 1 else 0][0] - coords[i][0]
-            dy = coords[i + 1 if i < len(coords) - 1 else 0][1] - coords[i][1]
+        # uniq, index = np.unique(self.border, return_index=True, axis=0)
+        # self.border = uniq[index.argsort()]
+        temp = self.bresenham_line(
+            coords[-1][0],
+            coords[-1][1],
+            coords[0][0],
+            coords[0][1]
+        )
+        # for point in temp:
+        #     self.ax.scatter(point[0], point[1], s=100, marker='o', c='green')
+        self.border = np.append(
+            self.border,
+            temp,
+            axis=0
+        )
 
-            if dx >= dy and dx >= 0 and dy >= 0:
-                x = coords[i][0]
-                y = coords[i][1]
-                self.border = np.append(self.border, [[x, y]], axis=0)
+        # for i in range(len(coords)):
+        #     dx = coords[i + 1 if i < len(coords) - 1 else 0][0] - coords[i][0]
+        #     dy = coords[i + 1 if i < len(coords) - 1 else 0][1] - coords[i][1]
 
-                # self.ax.scatter(x, y, s=100, marker='o', c='green')
-                # self.fig.canvas.draw()
-                # self.fig.canvas.flush_events()
+        #     if dx >= dy and dx >= 0 and dy >= 0:
+        #         x = coords[i][0]
+        #         y = coords[i][1]
+        #         self.border = np.append(self.border, [[x, y]], axis=0)
 
-                self.area[int(x)][int(y)] = True
-                self.__RightUp(x, y, dx, dy)
-            elif dy >= dx and dx >= 0 and dy >= 0:
-                x = coords[i][0]
-                y = coords[i][1]
-                self.border = np.append(self.border, [[x, y]], axis=0)
+        #         # self.ax.scatter(x, y, s=100, marker='o', c='green')
+        #         # self.fig.canvas.draw()
+        #         # self.fig.canvas.flush_events()
 
-                # self.ax.scatter(x, y, s=100, marker='o', c='green')
-                # self.fig.canvas.draw()
-                # self.fig.canvas.flush_events()
+        #         self.area[int(x)][int(y)] = True
+        #         self.__RightUp(x, y, dx, dy)
+        #     elif dy >= dx and dx >= 0 and dy >= 0:
+        #         x = coords[i][0]
+        #         y = coords[i][1]
+        #         self.border = np.append(self.border, [[x, y]], axis=0)
 
-
-                self.area[int(x)][int(y)] = True
-                self.__RightUpper(x, y, dx, dy)
-            elif dx >= np.abs(dy) and dx >= 0 and dy <= 0:
-                x = coords[i][0]
-                y = coords[i][1]
-                dy = np.abs(dy)
-                self.border = np.append(self.border, [[x, y]], axis=0)
-
-                # self.ax.scatter(x, y, s=100, marker='o', c='green')
-                # self.fig.canvas.draw()
-                # self.fig.canvas.flush_events()
+        #         # self.ax.scatter(x, y, s=100, marker='o', c='green')
+        #         # self.fig.canvas.draw()
+        #         # self.fig.canvas.flush_events()
 
 
-                self.area[int(x)][int(y)] = True
-                self.__RightDown(x, y, dx, dy)
-            elif np.abs(dy) >= dx and dx >= 0 and dy <= 0:
-                x = coords[i][0]
-                y = coords[i][1]
-                dy = np.abs(dy)
-                self.border = np.append(self.border, [[x, y]], axis=0)
+        #         self.area[int(x)][int(y)] = True
+        #         self.__RightUpper(x, y, dx, dy)
+        #     elif dx >= np.abs(dy) and dx >= 0 and dy <= 0:
+        #         x = coords[i][0]
+        #         y = coords[i][1]
+        #         dy = np.abs(dy)
+        #         self.border = np.append(self.border, [[x, y]], axis=0)
 
-                # self.ax.scatter(x, y, s=100, marker='o', c='green')
-                # self.fig.canvas.draw()
-                # self.fig.canvas.flush_events()
-
-
-                self.area[int(x)][int(y)] = True
-                self.__RightDowner(x, y, dx, dy)
-            elif np.abs(dx) >= np.abs(dy) and dx <= 0 and dy <= 0:
-                x = coords[i + 1 if i < len(coords) - 1 else 0][0]
-                y = coords[i + 1 if i < len(coords) - 1 else 0][1]
-                dx = np.abs(dx)
-                dy = np.abs(dy)
-                self.border = np.append(self.border, [[x, y]], axis=0)
-
-                # self.ax.scatter(x, y, s=100, marker='o', c='green')
-                # self.fig.canvas.draw()
-                # self.fig.canvas.flush_events()
+        #         # self.ax.scatter(x, y, s=100, marker='o', c='green')
+        #         # self.fig.canvas.draw()
+        #         # self.fig.canvas.flush_events()
 
 
-                self.area[int(x)][int(y)] = True
-                self.__RightUp(x, y, dx, dy)
-            elif np.abs(dy) >= np.abs(dx) and dx <= 0 and dy <= 0:
-                x = coords[i + 1 if i < len(coords) - 1 else 0][0]
-                y = coords[i + 1 if i < len(coords) - 1 else 0][1]
-                dx = np.abs(dx)
-                dy = np.abs(dy)
-                self.border = np.append(self.border, [[x, y]], axis=0)
+        #         self.area[int(x)][int(y)] = True
+        #         self.__RightDown(x, y, dx, dy)
+        #     elif np.abs(dy) >= dx and dx >= 0 and dy <= 0:
+        #         x = coords[i][0]
+        #         y = coords[i][1]
+        #         dy = np.abs(dy)
+        #         self.border = np.append(self.border, [[x, y]], axis=0)
 
-                # self.ax.scatter(x, y, s=100, marker='o', c='green')
-                # self.fig.canvas.draw()
-                # self.fig.canvas.flush_events()
-
-
-                self.area[int(x)][int(y)] = 1
-                self.__RightUpper(x, y, dx, dy)
-            elif np.abs(dx) >= dy and dx <= 0 and dy >= 0:
-                x = coords[i + 1 if i < len(coords) - 1 else 0][0]
-                y = coords[i + 1 if i < len(coords) - 1 else 0][1]
-                dx = np.abs(dx)
-                self.border = np.append(self.border, [[x, y]], axis=0)
-
-                # self.ax.scatter(x, y, s=100, marker='o', c='green')
-                # self.fig.canvas.draw()
-                # self.fig.canvas.flush_events()
+        #         # self.ax.scatter(x, y, s=100, marker='o', c='green')
+        #         # self.fig.canvas.draw()
+        #         # self.fig.canvas.flush_events()
 
 
-                self.area[int(x)][int(y)] = True
-                self.__RightDown(x, y, dx, dy)
-            elif dy >= np.abs(dx) and dx <= 0 and dy >= 0:
-                x = coords[i + 1 if i < len(coords) - 1 else 0][0]
-                y = coords[i + 1 if i < len(coords) - 1 else 0][1]
-                dx = np.abs(dx)
-                self.border = np.append(self.border, [[x, y]], axis=0)
+        #         self.area[int(x)][int(y)] = True
+        #         self.__RightDowner(x, y, dx, dy)
+        #     elif np.abs(dx) >= np.abs(dy) and dx <= 0 and dy <= 0:
+        #         x = coords[i + 1 if i < len(coords) - 1 else 0][0]
+        #         y = coords[i + 1 if i < len(coords) - 1 else 0][1]
+        #         dx = np.abs(dx)
+        #         dy = np.abs(dy)
+        #         self.border = np.append(self.border, [[x, y]], axis=0)
 
-                # self.ax.scatter(x, y, s=100, marker='o', c='green')
-                # self.fig.canvas.draw()
-                # self.fig.canvas.flush_events()
+        #         # self.ax.scatter(x, y, s=100, marker='o', c='green')
+        #         # self.fig.canvas.draw()
+        #         # self.fig.canvas.flush_events()
 
 
-                self.area[int(x)][int(y)] = True
-                self.__RightDowner(x, y, dx, dy)
+        #         self.area[int(x)][int(y)] = True
+        #         self.__RightUp(x, y, dx, dy)
+        #     elif np.abs(dy) >= np.abs(dx) and dx <= 0 and dy <= 0:
+        #         x = coords[i + 1 if i < len(coords) - 1 else 0][0]
+        #         y = coords[i + 1 if i < len(coords) - 1 else 0][1]
+        #         dx = np.abs(dx)
+        #         dy = np.abs(dy)
+        #         self.border = np.append(self.border, [[x, y]], axis=0)
+
+        #         # self.ax.scatter(x, y, s=100, marker='o', c='green')
+        #         # self.fig.canvas.draw()
+        #         # self.fig.canvas.flush_events()
+
+
+        #         self.area[int(x)][int(y)] = 1
+        #         self.__RightUpper(x, y, dx, dy)
+        #     elif np.abs(dx) >= dy and dx <= 0 and dy >= 0:
+        #         x = coords[i + 1 if i < len(coords) - 1 else 0][0]
+        #         y = coords[i + 1 if i < len(coords) - 1 else 0][1]
+        #         dx = np.abs(dx)
+        #         self.border = np.append(self.border, [[x, y]], axis=0)
+
+        #         # self.ax.scatter(x, y, s=100, marker='o', c='green')
+        #         # self.fig.canvas.draw()
+        #         # self.fig.canvas.flush_events()
+
+
+        #         self.area[int(x)][int(y)] = True
+        #         self.__RightDown(x, y, dx, dy)
+        #     elif dy >= np.abs(dx) and dx <= 0 and dy >= 0:
+        #         x = coords[i + 1 if i < len(coords) - 1 else 0][0]
+        #         y = coords[i + 1 if i < len(coords) - 1 else 0][1]
+        #         dx = np.abs(dx)
+        #         self.border = np.append(self.border, [[x, y]], axis=0)
+
+        #         # self.ax.scatter(x, y, s=100, marker='o', c='green')
+        #         # self.fig.canvas.draw()
+        #         # self.fig.canvas.flush_events()
+
+
+        #         self.area[int(x)][int(y)] = True
+        #         self.__RightDowner(x, y, dx, dy)
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
+
         # uniq, index = np.unique(self.border, return_index=True, axis=0)
         # self.border = uniq[index.argsort()]
 
@@ -374,7 +382,8 @@ class Filling:
         y = y0
         for x in range(int(x0), int(x1 + 1)):
             coord = [y, x] if slope else [x, y]
-            pixels.append(coord)
+            if not pixels or coord[1] != pixels[len(pixels) - 1][1]:
+                pixels.append(coord)
             error -= dy
             if error < 0:
                 y += ystep

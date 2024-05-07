@@ -215,16 +215,25 @@ class Filling:
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
 
+    def __count_ununique(self, coords, y):
+        count_ununique = 0
+        for p in coords:
+            count_ununique += 1 if p[1] == y else 0
+        return int(count_ununique / 2) % 2 == 0
+
     def __rasterize(self, coords):
         for i in range(len(coords) - 1):
             if coords[i][1] == coords[i + 1][1]:
-                count_ununique = 0
-                for p in coords:
-                    count_ununique += 1 if p[1] == coords[i + 1][1] else 0
-                if (count_ununique / 2) % 2 == 0:
-                    self.border = np.append(self.border, [coords[i + 1]], axis=0)
-                # elif i != 0:
-                #     self.border = np.delete(self.border, -1, 0)
+                if self.__count_ununique(coords, coords[i + 1][1]):
+                    if coords[i - 1][1] < coords[i][1] == coords[i + 1][1] > coords[i + 2 - len(coords)][1]:
+                        self.border = np.append(self.border, [coords[i]], axis=0)
+                    elif i != 0:
+                        self.border = np.delete(self.border, -1, 0)
+                else:
+                    if coords[i - 1][1] < coords[i][1] == coords[i + 1][1] > coords[i + 2 - len(coords)][1] and i != 0:
+                        self.border = np.delete(self.border, -1, 0)
+                    else:
+                        self.border = np.append(self.border, [coords[i]], axis=0)
                 continue
             temp = self.bresenham_line(
                 coords[i][0],
@@ -242,13 +251,16 @@ class Filling:
             )
 
         if coords[-1][1] == coords[0][1]:
-            count_ununique = 0
-            for p in coords:
-                count_ununique += 1 if p[1] == coords[0][1] else 0
-            if (count_ununique / 2) % 2 == 0:
-                self.border = np.append(self.border, [coords[0]], axis=0)
-            # else:
-            #     self.border = np.delete(self.border, -1, 0)
+            if self.__count_ununique(coords, coords[0][1]):
+                if coords[-2][1] < coords[-1][1] == coords[0][1] > coords[1][1]:
+                    self.border = np.append(self.border, [coords[-1]], axis=0)
+                else:
+                    self.border = np.delete(self.border, -1, 0)
+            else:
+                if coords[-2][1] < coords[-1][1] == coords[0][1] > coords[1][1]:
+                    self.border = np.delete(self.border, -1, 0)
+                else:
+                    self.border = np.append(self.border, [coords[-1]], axis=0)
         else:
             temp = self.bresenham_line(
                 coords[-1][0],
@@ -264,16 +276,19 @@ class Filling:
             temp,
             axis=0
         )
-        # if coords[1][1] == coords[0][1]:
-        #     count_ununique = 0
-        #     for p in coords:
-        #         count_ununique += 1 if p[1] == coords[0][1] else 0
-        #     if (count_ununique / 2) % 2 == 0:
-        #         self.border = np.append(self.border, [coords[0]], axis=0)
+        # if coords[0][1] == coords[1][1]:
+        #     if self.__count_ununique(coords, coords[1][1]):
+        #         if coords[-1][1] < coords[0][1] == coords[1][1] > coords[2][1]:
+        #             self.border = np.append(self.border, [coords[0]], axis=0)
+        #         else:
+        #             self.border = np.delete(self.border, -1, 0)
         #     else:
-        #         self.border = np.delete(self.border, -1, 0)
+        #         if coords[-1][1] < coords[0][1] == coords[1][1] > coords[2][1]:
+        #             self.border = np.delete(self.border, -1, 0)
+        #         else:
+        #             self.border = np.append(self.border, [coords[0]], axis=0)
 
-    def bresenham_line(self, x0, y0, x1, y1) -> list:
+    def bresenham_line(self, x0, y0, x1, y1):
         direction_y = np.sign(y1 - y0)
         direction_x = np.sign(x1 - x0)
         pixels = []

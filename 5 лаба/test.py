@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.widgets import Button, TextBox
 from matplotlib.patches import Polygon
-from time import sleep
 
 
 class Filling:
@@ -18,33 +17,31 @@ class Filling:
         self.__initPolygon()
 
     def __initAxes(self):
-        self.ax.spines['left'].set_visible(False)
-        self.ax.spines['bottom'].set_visible(False)
-        self.ax.spines['top'].set_visible(False)
-        self.ax.spines['right'].set_visible(False)
+        self.ax.spines['left'].set_visible(True)
+        self.ax.spines['bottom'].set_visible(True)
+        self.ax.spines['top'].set_visible(True)
+        self.ax.spines['right'].set_visible(True)
         self.ax.set(
-            xlim=(-5, 80),
-            xticks=np.arange(-5, 80, 1),
-            ylim=(-5, 80),
-            yticks=np.arange(-5, 80, 1)
+            xlim=(-5, 100),
+            xticks=[],
+            ylim=(-5, 100),
+            yticks=[]
         )
-        self.ax.grid(True)
+        self.ax.grid(False)
 
     def __initPolygon(self):
-        self.polygon_coords = np.genfromtxt(
-            self.polygon_file,
-            delimiter=' '
-        )
+        self.polygon_coords = np.empty(shape=[0, 2])
 
     def __initUI(self):
         self.__initInputPolygon()
         self.__initAddButton()
+        self.__initLoadButton()
         self.__initBackButton()
         self.__initDrawButton()
         self.__initClearButton()
 
     def __initInputPolygon(self):
-        self.input_x_axes = self.fig.add_axes([0.05, 0.05, 0.15, 0.05])
+        self.input_x_axes = self.fig.add_axes([0.05, 0.05, 0.12, 0.05])
         self.input_x = TextBox(
             self.input_x_axes,
             ' X ',
@@ -52,7 +49,7 @@ class Filling:
         )
         self.input_x.on_submit(self.__setX)
 
-        self.input_y_axes = self.fig.add_axes([0.25, 0.05, 0.15, 0.05])
+        self.input_y_axes = self.fig.add_axes([0.19, 0.05, 0.12, 0.05])
         self.input_y = TextBox(
             self.input_y_axes,
             ' Y ',
@@ -66,7 +63,7 @@ class Filling:
         ])
 
     def __initAddButton(self):
-        self.add_point_axes = self.fig.add_axes([0.45, 0.05, 0.15, 0.05])
+        self.add_point_axes = self.fig.add_axes([0.33, 0.05, 0.15, 0.05])
         self.b_add_point = Button(
             self.add_point_axes,
             'Add point',
@@ -80,6 +77,16 @@ class Filling:
             [self.point],
             axis=0
         )
+
+    def __initLoadButton(self):
+        self.load_axes = self.fig.add_axes([0.5, 0.05, 0.10, 0.05])
+        self.b_load = Button(
+            self.load_axes,
+            'Load',
+            hovercolor='white'
+        )
+        self.b_load.label.set_fontsize(14)
+        self.b_load.on_clicked(self.__load)
 
     def __initBackButton(self):
         self.back_axes = self.fig.add_axes([0.62, 0.05, 0.1, 0.05])
@@ -111,9 +118,7 @@ class Filling:
         self.b_clear.label.set_fontsize(14)
         self.b_clear.on_clicked(self.__clear)
 
-
     def run(self):
-        self.__drawPolygon()
         plt.show()
 
     def __drawPolygon(self):
@@ -147,6 +152,14 @@ class Filling:
         )
         self.__drawPolygon()
 
+    def __load(self, event):
+        self.polygon_coords = np.empty(shape=[0, 2])
+        self.polygon_coords = np.genfromtxt(
+            self.polygon_file,
+            delimiter=' '
+        )
+        self.__drawPolygon()
+
     def __back(self, event):
         self.polygon_coords = np.delete(
             self.polygon_coords,
@@ -163,9 +176,9 @@ class Filling:
         self.fig.canvas.flush_events()
 
     def __draw(self, event):
+        '''Определние перегородки'''
         self.max_x, self.min_x = self.polygon_coords[0][0], self.polygon_coords[0][0]
         self.max_y, self.min_y = self.polygon_coords[0][1], self.polygon_coords[0][1]
-
         for point in self.polygon_coords:
             if point[0] > self.max_x:
                 self.max_x = point[0]
@@ -175,36 +188,19 @@ class Filling:
                 self.min_x = point[0]
             if point[1] < self.min_y:
                 self.min_y = point[1]
-        coords = np.copy(self.polygon_coords)
-        flag = False
-        for i in range(len(coords)):
-            if flag:
-                flag = False
-            elif coords[i - 1][1] >= coords[i][1] and \
-               coords[i + 1][1] <= coords[i][1] or \
-               coords[i - 1][1] <= coords[i][1] and \
-               coords[i + 1][1] >= coords[i][1]:
-                coords = np.insert(coords, i, [coords[i][0], coords[i][1]], axis=0)
-                flag = True
-        if coords[len(coords) - 2][1] >= coords[len(coords) - 1][1] and \
-           coords[0][1] <= coords[len(coords) - 1][1] or \
-           coords[len(coords) - 2][1] <= coords[len(coords) - 1][1] and \
-           coords[0][1] >= coords[len(coords) - 1][1]:
-            coords = np.insert(
-                coords, 
-                len(coords) - 1, 
-                [coords[len(coords) - 1][0], coords[len(coords) - 1][1]],
-                axis=0
-            )
-        self.border = np.empty((0, 2))
 
-        self.area = np.empty((100, 100))
-        for x in range(100):
-            for y in range(100):
-                self.area[x][y] = False
+        coords = np.copy(self.polygon_coords)
+        self.border = np.empty((0, 2))
+        self.area = np.zeros((101, 101))
 
         self.__rasterize(coords)
         self.__invertLineArea()
+        self.ax.clear()
+        self.__initAxes()
+        for x in range(self.area.shape[0] - 1):
+            for y in range(self.area.shape[1] - 1):
+                if self.area[x][y]:
+                    self.ax.scatter(x, y, s=48, marker='s', c='red')
         points = np.array(list(map(lambda x: x[:2], self.polygon_coords)))
         polygon = Polygon(
             points,
@@ -221,150 +217,65 @@ class Filling:
 
     def __rasterize(self, coords):
         for i in range(len(coords) - 1):
+            if coords[i][1] == coords[i + 1][1]:
+                count_ununique = 0
+                for p in coords:
+                    count_ununique += 1 if p[1] == coords[i + 1][1] else 0
+                if (count_ununique / 2) % 2 == 0:
+                    self.border = np.append(self.border, [coords[i + 1]], axis=0)
+                # elif i != 0:
+                #     self.border = np.delete(self.border, -1, 0)
+                continue
             temp = self.bresenham_line(
                 coords[i][0],
                 coords[i][1],
                 coords[i + 1][0],
                 coords[i + 1][1]
             )
-            # for point in temp:
-            #     self.ax.scatter(point[0], point[1], s=100, marker='o', c='green')
+            if coords[i - 1][1] >= coords[i][1] >= coords[i + 1][1] or \
+               coords[i - 1][1] <= coords[i][1] <= coords[i + 1][1]:
+                temp = np.delete(temp, 0, 0)
             self.border = np.append(
                 self.border,
                 temp,
                 axis=0
             )
 
-        # uniq, index = np.unique(self.border, return_index=True, axis=0)
-        # self.border = uniq[index.argsort()]
-        temp = self.bresenham_line(
-            coords[-1][0],
-            coords[-1][1],
-            coords[0][0],
-            coords[0][1]
-        )
-        # for point in temp:
-        #     self.ax.scatter(point[0], point[1], s=100, marker='o', c='green')
+        if coords[-1][1] == coords[0][1]:
+            count_ununique = 0
+            for p in coords:
+                count_ununique += 1 if p[1] == coords[0][1] else 0
+            if (count_ununique / 2) % 2 == 0:
+                self.border = np.append(self.border, [coords[0]], axis=0)
+            # else:
+            #     self.border = np.delete(self.border, -1, 0)
+        else:
+            temp = self.bresenham_line(
+                coords[-1][0],
+                coords[-1][1],
+                coords[0][0],
+                coords[0][1]
+            )
+        if coords[-2][1] >= coords[-1][1] >= coords[0][1] or \
+           coords[-2][1] <= coords[-1][1] <= coords[0][1]:
+            temp = np.delete(temp, 0, 0)
         self.border = np.append(
             self.border,
             temp,
             axis=0
         )
-
-        # for i in range(len(coords)):
-        #     dx = coords[i + 1 if i < len(coords) - 1 else 0][0] - coords[i][0]
-        #     dy = coords[i + 1 if i < len(coords) - 1 else 0][1] - coords[i][1]
-
-        #     if dx >= dy and dx >= 0 and dy >= 0:
-        #         x = coords[i][0]
-        #         y = coords[i][1]
-        #         self.border = np.append(self.border, [[x, y]], axis=0)
-
-        #         # self.ax.scatter(x, y, s=100, marker='o', c='green')
-        #         # self.fig.canvas.draw()
-        #         # self.fig.canvas.flush_events()
-
-        #         self.area[int(x)][int(y)] = True
-        #         self.__RightUp(x, y, dx, dy)
-        #     elif dy >= dx and dx >= 0 and dy >= 0:
-        #         x = coords[i][0]
-        #         y = coords[i][1]
-        #         self.border = np.append(self.border, [[x, y]], axis=0)
-
-        #         # self.ax.scatter(x, y, s=100, marker='o', c='green')
-        #         # self.fig.canvas.draw()
-        #         # self.fig.canvas.flush_events()
-
-
-        #         self.area[int(x)][int(y)] = True
-        #         self.__RightUpper(x, y, dx, dy)
-        #     elif dx >= np.abs(dy) and dx >= 0 and dy <= 0:
-        #         x = coords[i][0]
-        #         y = coords[i][1]
-        #         dy = np.abs(dy)
-        #         self.border = np.append(self.border, [[x, y]], axis=0)
-
-        #         # self.ax.scatter(x, y, s=100, marker='o', c='green')
-        #         # self.fig.canvas.draw()
-        #         # self.fig.canvas.flush_events()
-
-
-        #         self.area[int(x)][int(y)] = True
-        #         self.__RightDown(x, y, dx, dy)
-        #     elif np.abs(dy) >= dx and dx >= 0 and dy <= 0:
-        #         x = coords[i][0]
-        #         y = coords[i][1]
-        #         dy = np.abs(dy)
-        #         self.border = np.append(self.border, [[x, y]], axis=0)
-
-        #         # self.ax.scatter(x, y, s=100, marker='o', c='green')
-        #         # self.fig.canvas.draw()
-        #         # self.fig.canvas.flush_events()
-
-
-        #         self.area[int(x)][int(y)] = True
-        #         self.__RightDowner(x, y, dx, dy)
-        #     elif np.abs(dx) >= np.abs(dy) and dx <= 0 and dy <= 0:
-        #         x = coords[i + 1 if i < len(coords) - 1 else 0][0]
-        #         y = coords[i + 1 if i < len(coords) - 1 else 0][1]
-        #         dx = np.abs(dx)
-        #         dy = np.abs(dy)
-        #         self.border = np.append(self.border, [[x, y]], axis=0)
-
-        #         # self.ax.scatter(x, y, s=100, marker='o', c='green')
-        #         # self.fig.canvas.draw()
-        #         # self.fig.canvas.flush_events()
-
-
-        #         self.area[int(x)][int(y)] = True
-        #         self.__RightUp(x, y, dx, dy)
-        #     elif np.abs(dy) >= np.abs(dx) and dx <= 0 and dy <= 0:
-        #         x = coords[i + 1 if i < len(coords) - 1 else 0][0]
-        #         y = coords[i + 1 if i < len(coords) - 1 else 0][1]
-        #         dx = np.abs(dx)
-        #         dy = np.abs(dy)
-        #         self.border = np.append(self.border, [[x, y]], axis=0)
-
-        #         # self.ax.scatter(x, y, s=100, marker='o', c='green')
-        #         # self.fig.canvas.draw()
-        #         # self.fig.canvas.flush_events()
-
-
-        #         self.area[int(x)][int(y)] = 1
-        #         self.__RightUpper(x, y, dx, dy)
-        #     elif np.abs(dx) >= dy and dx <= 0 and dy >= 0:
-        #         x = coords[i + 1 if i < len(coords) - 1 else 0][0]
-        #         y = coords[i + 1 if i < len(coords) - 1 else 0][1]
-        #         dx = np.abs(dx)
-        #         self.border = np.append(self.border, [[x, y]], axis=0)
-
-        #         # self.ax.scatter(x, y, s=100, marker='o', c='green')
-        #         # self.fig.canvas.draw()
-        #         # self.fig.canvas.flush_events()
-
-
-        #         self.area[int(x)][int(y)] = True
-        #         self.__RightDown(x, y, dx, dy)
-        #     elif dy >= np.abs(dx) and dx <= 0 and dy >= 0:
-        #         x = coords[i + 1 if i < len(coords) - 1 else 0][0]
-        #         y = coords[i + 1 if i < len(coords) - 1 else 0][1]
-        #         dx = np.abs(dx)
-        #         self.border = np.append(self.border, [[x, y]], axis=0)
-
-        #         # self.ax.scatter(x, y, s=100, marker='o', c='green')
-        #         # self.fig.canvas.draw()
-        #         # self.fig.canvas.flush_events()
-
-
-        #         self.area[int(x)][int(y)] = True
-        #         self.__RightDowner(x, y, dx, dy)
-        self.fig.canvas.draw()
-        self.fig.canvas.flush_events()
-
-        # uniq, index = np.unique(self.border, return_index=True, axis=0)
-        # self.border = uniq[index.argsort()]
+        # if coords[1][1] == coords[0][1]:
+        #     count_ununique = 0
+        #     for p in coords:
+        #         count_ununique += 1 if p[1] == coords[0][1] else 0
+        #     if (count_ununique / 2) % 2 == 0:
+        #         self.border = np.append(self.border, [coords[0]], axis=0)
+        #     else:
+        #         self.border = np.delete(self.border, -1, 0)
 
     def bresenham_line(self, x0, y0, x1, y1) -> list:
+        direction_y = np.sign(y1 - y0)
+        direction_x = np.sign(x1 - x0)
         pixels = []
         dx = abs(x1 - x0)
         dy = abs(y1 - y0)
@@ -388,110 +299,34 @@ class Filling:
             if error < 0:
                 y += ystep
                 error += dx
+        if direction_y == direction_x == -1 or \
+                slope and direction_y == -1 or \
+                not slope and direction_x == -1:
+            return pixels[::-1]
         return pixels
 
     def __invertLineArea(self):
+        self.field_figure = np.empty((2, 0))
         for i in range(len(self.border)):
             y = int(self.border[i][1])
             if (self.border[i][0] < (self.min_x + self.max_x) / 2):
                 for x in range(int(self.border[i][0]), int((self.min_x + self.max_x) / 2)):
                     self.area[x][y] = not self.area[x][y]
                     if self.area[x][y]:
-                        self.ax.scatter(x, y, s=49, marker='o', c='red')
+                        self.ax.scatter(x, y, s=48, marker='s', c='red')
                     else:
-                        self.ax.scatter(x, y, s=50, marker='o', c='white')
+                        self.ax.scatter(x, y, s=48, marker='s', c='white')
 
             else:
                 for x in range(int((self.min_x + self.max_x) / 2), int(self.border[i][0]) + 1):
                     self.area[x][y] = not self.area[x][y]
                     if self.area[x][y]:
-                        self.ax.scatter(x, y, s=49, marker='o', c='red')
+                        self.ax.scatter(x, y, s=48, marker='s', c='red')
                     else:
-                        self.ax.scatter(x, y, s=50, marker='o', c='white')
+                        self.ax.scatter(x, y, s=48, marker='s', c='white')
+
             self.fig.canvas.draw()
             self.fig.canvas.flush_events()
-
-    def __RightUp(self, x, y, dx, dy):
-        delta = 2 * dy - dx
-        increment_horizontal = 2 * dy
-        increment_diagonal = 2 * (dy - dx)
-        for i in range(int(dx)):
-            if delta > 0:
-                y += 1
-                x += 1
-                self.border = np.append(self.border, [[x, y]], axis=0)
-
-                # self.ax.scatter(x, y, s=100, marker='o', c='green')
-                # self.fig.canvas.draw()
-                # self.fig.canvas.flush_events()
-
-
-                self.area[int(x)][int(y)] = True
-                delta += increment_diagonal
-            else:
-                delta += increment_horizontal
-                x += 1
-
-    def __RightUpper(self, x, y, dx, dy):
-        delta = 2 * dx - dy
-        increment_vertical = 2 * dx
-        increment_diagonal = 2 * (dx - dy)
-        for i in range(int(dy)):
-            if delta > 0:
-                x += 1
-                delta += increment_diagonal
-            else:
-                delta += increment_vertical
-            y += 1
-            self.border = np.append(self.border, [[x, y]], axis=0)
-
-            # self.ax.scatter(x, y, s=100, marker='o', c='green')
-            # self.fig.canvas.draw()
-            # self.fig.canvas.flush_events()
-
-
-            self.area[int(x)][int(y)] = True
-
-    def __RightDown(self, x, y, dx, dy):
-        delta = 2 * dy - dx
-        increment_horizontal = 2 * dy
-        increment_diagonal = 2 * (dy - dx)
-        for i in range(int(dx)):
-            if delta > 0:
-                y -= 1
-                x += 1
-                self.border = np.append(self.border, [[x, y]], axis=0)
-
-                # self.ax.scatter(x, y, s=100, marker='o', c='green')
-                # self.fig.canvas.draw()
-                # self.fig.canvas.flush_events()
-
-
-                self.area[int(x)][int(y)] = True
-                delta += increment_diagonal
-            else:
-                x += 1
-                delta += increment_horizontal
-
-    def __RightDowner(self, x, y, dx, dy):
-        delta = 2 * dx - dy
-        increment_vertical = 2 * dx
-        increment_diagonal = 2 * (dx - dy)
-        for i in range(int(dy)):
-            if delta > 0:
-                x += 1
-                delta += increment_diagonal
-            else:
-                delta += increment_vertical
-            y -= 1
-            self.border = np.append(self.border, [[x, y]], axis=0)
-
-            # self.ax.scatter(x, y, s=100, marker='o', c='green')
-            # self.fig.canvas.draw()
-            # self.fig.canvas.flush_events()
-
-
-            self.area[int(x)][int(y)] = True
 
 
 app = Filling()

@@ -11,7 +11,7 @@ class Filling:
         self.ax = self.fig.add_subplot()
         self.__initAxes()
         self.fig.subplots_adjust(bottom=0.2)
-        self.polygon_file = 'D:/Users/Даня/Desktop/КомпГрафика/5 лаба/polygon.txt'
+        self.polygon_file = 'D:/Users/Даня/Desktop/КомпГрафика/5лаба/polygon.txt'
         self.__initPolygon()
         self.__initUI()
         self.__initPolygon()
@@ -33,6 +33,8 @@ class Filling:
         self.polygon_coords = np.empty(shape=[0, 2])
 
     def __initUI(self):
+        self.__initInputPartitionX()
+        self.__initAddPartitionButton()
         self.__initInputPolygon()
         self.__initAddButton()
         self.__initLoadButton()
@@ -77,6 +79,32 @@ class Filling:
             [self.point],
             axis=0
         )
+
+    def __initInputPartitionX(self):
+        self.input_x_p_axes = self.fig.add_axes([0.05, 0.9, 0.12, 0.05])
+        self.input_x_p = TextBox(
+            self.input_x_p_axes,
+            ' X ',
+            initial='0'
+        )
+        self.input_x_p.on_submit(self.__setXP)
+
+        self.partition = np.array([
+            [np.float64(self.input_x_p.text),
+             0],
+            [np.float64(self.input_x_p.text),
+             0]
+        ])
+
+    def __initAddPartitionButton(self):
+        self.add_partition_axes = self.fig.add_axes([0.18, 0.9, 0.15, 0.05])
+        self.b_add_partition = Button(
+            self.add_partition_axes,
+            'Add partition',
+            hovercolor='white'
+        )
+        self.b_add_partition.label.set_fontsize(14)
+        self.b_add_partition.on_clicked(self.__drawPartition)
 
     def __initLoadButton(self):
         self.load_axes = self.fig.add_axes([0.5, 0.05, 0.10, 0.05])
@@ -125,18 +153,29 @@ class Filling:
         self.ax.clear()
         self.__initAxes()
 
+        self.max_y, self.min_y = self.polygon_coords[0][1], self.polygon_coords[0][1]
+        for point in self.polygon_coords:
+            if point[1] > self.max_y:
+                self.max_y = point[1]
+            if point[1] < self.min_y:
+                self.min_y = point[1]
+
+
         points = np.array(list(map(lambda x: x[:2], self.polygon_coords)))
-        polygon = Polygon(
+        self.polygon = Polygon(
             points,
             fc='none',
             ec='black',
             closed=True,
             lw=2
         )
-        self.ax.add_patch(polygon)
+        self.ax.add_patch(self.polygon)
 
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
+
+    def __setXP(self, text):
+        self.partition[0][0] = self.partition[1][0] = float(text)
 
     def __setX(self, text):
         self.point[0] = float(text)
@@ -151,6 +190,15 @@ class Filling:
             axis=0
         )
         self.__drawPolygon()
+
+    def __drawPartition(self, event):
+        self.ax.clear()
+        self.__initAxes()
+        self.ax.add_patch(self.polygon)
+        self.partition[0][1], self.partition[1][1] = self.min_y - 5, self.max_y + 5
+        self.ax.plot(*np.hsplit(self.partition, 2), color='green', lw=2)
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
 
     def __load(self, event):
         self.polygon_coords = np.empty(shape=[0, 2])
@@ -176,19 +224,6 @@ class Filling:
         self.fig.canvas.flush_events()
 
     def __draw(self, event):
-        '''Определние перегородки'''
-        self.max_x, self.min_x = self.polygon_coords[0][0], self.polygon_coords[0][0]
-        self.max_y, self.min_y = self.polygon_coords[0][1], self.polygon_coords[0][1]
-        for point in self.polygon_coords:
-            if point[0] > self.max_x:
-                self.max_x = point[0]
-            if point[1] > self.max_y:
-                self.max_y = point[1]
-            if point[0] < self.min_x:
-                self.min_x = point[0]
-            if point[1] < self.min_y:
-                self.min_y = point[1]
-
         coords = np.copy(self.polygon_coords)
         self.border = np.empty((0, 2))
         self.area = np.zeros((101, 101))
@@ -207,33 +242,16 @@ class Filling:
             fc='none',
             ec='black',
             closed=True,
-            lw=10
+            lw=8
         )
+        self.ax.plot(*np.hsplit(self.partition, 2), color='green', lw=2)
         self.ax.add_patch(polygon)
-        # for point in self.border:
-        #     self.ax.scatter(point[0], point[1], s=100, marker='o', c='green')
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
-
-    def __count_ununique(self, coords, y):
-        count_ununique = 0
-        for p in coords:
-            count_ununique += 1 if p[1] == y else 0
-        return int(count_ununique / 2) % 2 == 0
 
     def __rasterize(self, coords):
         for i in range(len(coords) - 1):
             if coords[i][1] == coords[i + 1][1]:
-                if self.__count_ununique(coords, coords[i + 1][1]):
-                    if coords[i - 1][1] < coords[i][1] == coords[i + 1][1] > coords[i + 2 - len(coords)][1]:
-                        self.border = np.append(self.border, [coords[i]], axis=0)
-                    elif i != 0:
-                        self.border = np.delete(self.border, -1, 0)
-                else:
-                    if coords[i - 1][1] < coords[i][1] == coords[i + 1][1] > coords[i + 2 - len(coords)][1] and i != 0:
-                        self.border = np.delete(self.border, -1, 0)
-                    else:
-                        self.border = np.append(self.border, [coords[i]], axis=0)
                 continue
             temp = self.bresenham_line(
                 coords[i][0],
@@ -241,8 +259,18 @@ class Filling:
                 coords[i + 1][0],
                 coords[i + 1][1]
             )
-            if coords[i - 1][1] >= coords[i][1] >= coords[i + 1][1] or \
-               coords[i - 1][1] <= coords[i][1] <= coords[i + 1][1]:
+            if coords[i][0] == coords[i + 1][0] and \
+               coords[i - 2][0] == coords[i - 1][0] and \
+               coords[i + 1][1] > coords[i][1] >= coords[i - 1][1] > coords[i - 2][1] and \
+               coords[i][1] == coords[i - 1][1]:
+                temp = np.delete(temp, 0, 0)
+            elif coords[i][0] == coords[i + 1][0] and \
+                    coords[i - 2][0] == coords[i - 1][0] and \
+                    coords[i + 1][1] < coords[i][1] <= coords[i - 1][1] < coords[i - 2][1] and \
+                    coords[i][1] == coords[i - 1][1] and len(self.border):
+                self.border = np.delete(self.border, -1, 0)
+            elif (coords[i - 1][1] > coords[i][1] > coords[i + 1][1] or
+                  coords[i - 1][1] < coords[i][1] < coords[i + 1][1]) and len(self.border):
                 temp = np.delete(temp, 0, 0)
             self.border = np.append(
                 self.border,
@@ -250,48 +278,50 @@ class Filling:
                 axis=0
             )
 
-        if coords[-1][1] == coords[0][1]:
-            if self.__count_ununique(coords, coords[0][1]):
-                if coords[-2][1] < coords[-1][1] == coords[0][1] > coords[1][1]:
-                    self.border = np.append(self.border, [coords[-1]], axis=0)
-                else:
-                    self.border = np.delete(self.border, -1, 0)
-            else:
-                if coords[-2][1] < coords[-1][1] == coords[0][1] > coords[1][1]:
-                    self.border = np.delete(self.border, -1, 0)
-                else:
-                    self.border = np.append(self.border, [coords[-1]], axis=0)
-        else:
+        if coords[-1][1] != coords[0][1]:
             temp = self.bresenham_line(
                 coords[-1][0],
                 coords[-1][1],
                 coords[0][0],
                 coords[0][1]
             )
-        if coords[-2][1] >= coords[-1][1] >= coords[0][1] or \
-           coords[-2][1] <= coords[-1][1] <= coords[0][1]:
-            temp = np.delete(temp, 0, 0)
-        self.border = np.append(
-            self.border,
-            temp,
-            axis=0
-        )
-        # if coords[0][1] == coords[1][1]:
-        #     if self.__count_ununique(coords, coords[1][1]):
-        #         if coords[-1][1] < coords[0][1] == coords[1][1] > coords[2][1]:
-        #             self.border = np.append(self.border, [coords[0]], axis=0)
-        #         else:
-        #             self.border = np.delete(self.border, -1, 0)
-        #     else:
-        #         if coords[-1][1] < coords[0][1] == coords[1][1] > coords[2][1]:
-        #             self.border = np.delete(self.border, -1, 0)
-        #         else:
-        #             self.border = np.append(self.border, [coords[0]], axis=0)
+            if coords[0][0] == coords[-1][0] and \
+               coords[-2][0] == coords[-3][0] and \
+               coords[0][1] > coords[-1][1] >= coords[-2][1] > coords[-3][1] and \
+               coords[-2][1] == coords[-1][1]:
+                temp = np.delete(temp, 0, 0)
+            elif coords[0][0] == coords[-1][0] and \
+                    coords[-2][0] == coords[-3][0] and \
+                    coords[0][1] < coords[-1][1] <= coords[-2][1] < coords[-3][1] and \
+                    coords[-2][1] == coords[-1][1]:
+                self.border = np.delete(self.border, -1, 0)
+            elif coords[-2][1] > coords[-1][1] > coords[0][1] or \
+                    coords[-2][1] < coords[-1][1] < coords[0][1]:
+                temp = np.delete(temp, 0, 0)
+            self.border = np.append(
+                self.border,
+                temp,
+                axis=0
+            )
+
+        if coords[2][0] == coords[1][0] and \
+           coords[0][0] == coords[-1][0] and \
+           coords[2][1] < coords[1][1] <= coords[0][1] < coords[-1][1] and \
+           coords[0][1] == coords[1][1]:
+            self.border = np.delete(self.border, -1, 0)
+        elif coords[2][0] == coords[1][0] and \
+                coords[0][0] == coords[-1][0] and \
+                coords[2][1] > coords[1][1] >= coords[0][1] > coords[-1][1] and \
+                coords[0][1] == coords[1][1]:
+            self.border = np.delete(self.border, -1, 0)
 
     def bresenham_line(self, x0, y0, x1, y1):
+        pixels = []
+        if y0 == y1:
+            pixels.append([x1, y1])
+            return pixels
         direction_y = np.sign(y1 - y0)
         direction_x = np.sign(x1 - x0)
-        pixels = []
         dx = abs(x1 - x0)
         dy = abs(y1 - y0)
         slope = dy > dx
@@ -324,8 +354,8 @@ class Filling:
         self.field_figure = np.empty((2, 0))
         for i in range(len(self.border)):
             y = int(self.border[i][1])
-            if (self.border[i][0] < (self.min_x + self.max_x) / 2):
-                for x in range(int(self.border[i][0]), int((self.min_x + self.max_x) / 2)):
+            if (self.border[i][0] < self.partition[0][0]):
+                for x in range(int(self.border[i][0]), int(self.partition[0][0])):
                     self.area[x][y] = not self.area[x][y]
                     if self.area[x][y]:
                         self.ax.scatter(x, y, s=48, marker='s', c='red')
@@ -333,7 +363,7 @@ class Filling:
                         self.ax.scatter(x, y, s=48, marker='s', c='white')
 
             else:
-                for x in range(int((self.min_x + self.max_x) / 2), int(self.border[i][0]) + 1):
+                for x in range(int(self.partition[0][0]), int(self.border[i][0]) + 1):
                     self.area[x][y] = not self.area[x][y]
                     if self.area[x][y]:
                         self.ax.scatter(x, y, s=48, marker='s', c='red')
